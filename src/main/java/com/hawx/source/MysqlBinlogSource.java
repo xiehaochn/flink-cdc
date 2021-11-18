@@ -34,12 +34,12 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
   private static final long BINLOG_START_OFFSET = 4L;
   public static final int BINLOG_CHECKSUM_ALG_OFF = 0;
 
-  private Logger logger = LoggerFactory.getLogger(MysqlBinlogSource.class);
+  private static Logger logger = LoggerFactory.getLogger(MysqlBinlogSource.class);
   private int defaultConnectionTimeoutInSeconds = 30; // sotimeout
   private int receiveBufferSize = 64 * 1024;
   private int sendBufferSize = 64 * 1024;
   protected final AtomicLong receivedBinlogBytes = new AtomicLong(0L);
-  private String destination = "tmpDestination"; // 队列名字
+  private String destination = "MysqlBinlogSource"; // 队列名字
   private DataBase dataBase =
       new DataBase(
           "mysql",
@@ -56,6 +56,7 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
   @Override
   public void open(Configuration parameters) throws Exception {
     super.open(parameters);
+    logger.info("start init binlog connector:" + dataBase.getHost() + ":" + dataBase.getPort());
     initBinlogConnector(dataBase);
     mysqlConnector.setReceiveBufferSize(receiveBufferSize);
     mysqlConnector.setSendBufferSize(sendBufferSize);
@@ -66,7 +67,10 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
     if (this.slaveId <= 0) {
       this.slaveId = generateUniqueServerId();
     }
+    logger.info("end init binlog connector");
+    logger.info("start connect");
     mysqlConnector.connect();
+    logger.info("end connect");
     updateSettings();
     sendRegisterSlave();
     sendBinlogDump("mysql-bin.000001", BINLOG_START_OFFSET);
@@ -228,22 +232,28 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
   }
 
   private void initBinlogConnector(DataBase dataBase) {
-    mysqlConnector = new MysqlConnector();
-    mysqlConnector.setAddress(new InetSocketAddress(dataBase.getHost(), dataBase.getPort()));
+    mysqlConnector =
+        new MysqlConnector(
+            new InetSocketAddress(dataBase.getHost(), dataBase.getPort()),
+            dataBase.getUser(),
+            dataBase.getPassword(),
+            dataBase.getDefaultDb());
   }
 
   @Override
   public void close() throws Exception {
     super.close();
+    mysqlConnector.disconnect();
   }
 
   @Override
-  public void run(SourceContext sourceContext) throws Exception {
+  public void run(SourceContext<LogEvent> sourceContext) throws Exception {
     DirectLogFetcher fetcher = new DirectLogFetcher(mysqlConnector.getReceiveBufferSize());
     fetcher.start(mysqlConnector.getChannel());
     LogDecoder decoder = new LogDecoder(LogEvent.UNKNOWN_EVENT, LogEvent.ENUM_END_EVENT);
     LogContext context = new LogContext();
     context.setFormatDescription(new FormatDescriptionLogEvent(4, BINLOG_CHECKSUM_ALG_OFF));
+    mysqlConnector.setDumping(true);
     while (fetcher.fetch()) {
       accumulateReceivedBytes(fetcher.limit());
       LogEvent event = null;
@@ -253,7 +263,7 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
         throw new Exception("parse failed");
       }
       // 处理binlog Event
-
+      logger.info("fetch:" + event);
       if (event.getSemival() == 1) {
         sendSemiAck(context.getLogPosition().getFileName(), context.getLogPosition().getPosition());
       }
@@ -276,5 +286,12 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
   }
 
   @Override
-  public void cancel() {}
+  public void cancel() {
+    try {
+      close();
+    } catch (Exception e) {
+      logger.error("cancel mysqlBinlogSource Failed");
+      e.printStackTrace();
+    }
+  }
 }

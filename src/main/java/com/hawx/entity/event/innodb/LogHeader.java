@@ -65,7 +65,7 @@ import java.util.Map;
  */
 public final class LogHeader {
 
-  protected final int type;
+  protected int type;
 
   /**
    * The offset in the log where this event originally appeared (it is preserved in relay logs,
@@ -219,7 +219,7 @@ public final class LogHeader {
      * (log.h). Notice, a pre-checksum FD version forces alg :=
      * BINLOG_CHECKSUM_ALG_UNDEF.
      */
-    checksumAlg = descriptionEvent.getHeader().checksumAlg; // fetch
+    checksumAlg = descriptionEvent.header.checksumAlg; // fetch
     // checksum alg
     processCheckSum(buffer);
     /* otherwise, go on with reading the header from buf (nothing now) */
@@ -314,5 +314,47 @@ public final class LogHeader {
         gtidMap.put(CURRENT_GTID_LAST_COMMIT, String.valueOf(event.getLastCommitted()));
       }
     }
+  }
+
+  public LogHeader() {}
+
+  public void setLogPos(long logPos) {
+    this.logPos = logPos;
+  }
+
+  public void setWhen(long when) {
+    this.when = when;
+  }
+
+  public void setEventLen(int eventLen) {
+    this.eventLen = eventLen;
+  }
+
+  public void setServerId(long serverId) {
+    this.serverId = serverId;
+  }
+
+  public void setFlags(int flags) {
+    this.flags = flags;
+  }
+
+  public void setChecksumAlg(int checksumAlg) {
+    this.checksumAlg = checksumAlg;
+  }
+
+  public void setCrc(long crc) {
+    this.crc = crc;
+  }
+
+  public Map<String, String> getGtidMap() {
+    return gtidMap;
+  }
+
+  public void setGtidMap(Map<String, String> gtidMap) {
+    this.gtidMap = gtidMap;
+  }
+
+  public void setType(int type) {
+    this.type = type;
   }
 }

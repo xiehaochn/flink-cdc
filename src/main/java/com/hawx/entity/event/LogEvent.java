@@ -43,6 +43,10 @@ import org.slf4j.LoggerFactory;
  */
 public abstract class LogEvent {
 
+  public Logger logger = LoggerFactory.getLogger(LogEvent.class);
+
+  public LogEvent() {}
+
   /*
    * 3 is MySQL 4.x; 4 is MySQL 5.0.0. Compared to version 3, version 4 has: -
    * a different Start_log_event, which includes info about the binary log
@@ -362,9 +366,7 @@ public abstract class LogEvent {
     }
   }
 
-  protected Logger logger = LoggerFactory.getLogger(LogEvent.class);
-
-  protected final LogHeader header;
+  public LogHeader header;
 
   /**
    * mysql半同步semi标识

@@ -91,7 +91,7 @@ public final class LogDecoder {
 
         if (event != null) {
           // set logFileName
-          event.getHeader().setLogFileName(context.getLogPosition().getFileName());
+          event.header.setLogFileName(context.getLogPosition().getFileName());
           event.setSemival(buffer.semival);
         }
 

@@ -28,9 +28,9 @@ public class MysqlConnector {
   private InetSocketAddress address;
   private String username;
   private String password;
+  private String defaultSchema;
 
   private byte charsetNumber = 33;
-  private String defaultSchema;
   private int soTimeout = 30 * 1000;
   private int connTimeout = 5 * 1000;
   private int receiveBufferSize = 16 * 1024;
@@ -46,24 +46,11 @@ public class MysqlConnector {
 
   public MysqlConnector() {}
 
-  public MysqlConnector(InetSocketAddress address, String username, String password) {
-    String addr = address.getHostString();
-    int port = address.getPort();
-    this.address = new InetSocketAddress(addr, port);
-
+  public MysqlConnector(
+      InetSocketAddress address, String username, String password, String defaultSchema) {
+    this.address = address;
     this.username = username;
     this.password = password;
-  }
-
-  public MysqlConnector(
-      InetSocketAddress address,
-      String username,
-      String password,
-      byte charsetNumber,
-      String defaultSchema) {
-    this(address, username, password);
-
-    this.charsetNumber = charsetNumber;
     this.defaultSchema = defaultSchema;
   }
 
