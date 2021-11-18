@@ -31,7 +31,7 @@ import java.util.BitSet;
  */
 public final class LogDecoder {
 
-  private Logger logger = LoggerFactory.getLogger(LogDecoder.class);
+  private static Logger logger = LoggerFactory.getLogger(LogDecoder.class);
 
   protected final BitSet handleSet = new BitSet(LogEvent.ENUM_END_EVENT);
 
@@ -118,7 +118,7 @@ public final class LogDecoder {
 
     int checksumAlg = LogEvent.BINLOG_CHECKSUM_ALG_UNDEF;
     if (header.getType() != LogEvent.FORMAT_DESCRIPTION_EVENT) {
-      checksumAlg = descriptionEvent.get.getChecksumAlg();
+      checksumAlg = descriptionEvent.header.getChecksumAlg();
     } else {
       // 如果是format事件自己，也需要处理checksum
       checksumAlg = header.getChecksumAlg();
@@ -157,6 +157,7 @@ public final class LogDecoder {
           return mapEvent;
         }
       case LogEvent.WRITE_ROWS_EVENT_V1:
+      case LogEvent.WRITE_ROWS_EVENT:
         {
           RowsLogEvent event = new WriteRowsLogEvent(header, buffer, descriptionEvent);
           /* updating position in context */
@@ -166,6 +167,7 @@ public final class LogDecoder {
           return event;
         }
       case LogEvent.UPDATE_ROWS_EVENT_V1:
+      case LogEvent.UPDATE_ROWS_EVENT:
         {
           RowsLogEvent event = new UpdateRowsLogEvent(header, buffer, descriptionEvent);
           /* updating position in context */
@@ -175,6 +177,7 @@ public final class LogDecoder {
           return event;
         }
       case LogEvent.DELETE_ROWS_EVENT_V1:
+      case LogEvent.DELETE_ROWS_EVENT:
         {
           RowsLogEvent event = new DeleteRowsLogEvent(header, buffer, descriptionEvent);
           /* updating position in context */
@@ -201,8 +204,7 @@ public final class LogDecoder {
         }
       case LogEvent.SLAVE_EVENT: /* can never happen (unused event) */
         {
-          if (logger.isWarnEnabled())
-            logger.warn("Skipping unsupported SLAVE_EVENT from: " + context.getLogPosition());
+          logger.warn("Skipping unsupported SLAVE_EVENT from: " + context.getLogPosition());
           break;
         }
       case LogEvent.CREATE_FILE_EVENT:
@@ -279,9 +281,8 @@ public final class LogDecoder {
         }
       case LogEvent.PRE_GA_WRITE_ROWS_EVENT:
         {
-          if (logger.isWarnEnabled())
-            logger.warn(
-                "Skipping unsupported PRE_GA_WRITE_ROWS_EVENT from: " + context.getLogPosition());
+          logger.warn(
+              "Skipping unsupported PRE_GA_WRITE_ROWS_EVENT from: " + context.getLogPosition());
           // ev = new Write_rows_log_event_old(buf, event_len,
           // description_event);
           break;
@@ -349,33 +350,6 @@ public final class LogDecoder {
           header.putGtid(context.getGtidSet(), gtidLogEvent);
           return event;
         }
-      case LogEvent.WRITE_ROWS_EVENT:
-        {
-          RowsLogEvent event = new WriteRowsLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          event.fillTable(context);
-          header.putGtid(context.getGtidSet(), gtidLogEvent);
-          return event;
-        }
-      case LogEvent.UPDATE_ROWS_EVENT:
-        {
-          RowsLogEvent event = new UpdateRowsLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          event.fillTable(context);
-          header.putGtid(context.getGtidSet(), gtidLogEvent);
-          return event;
-        }
-      case LogEvent.DELETE_ROWS_EVENT:
-        {
-          RowsLogEvent event = new DeleteRowsLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          event.fillTable(context);
-          header.putGtid(context.getGtidSet(), gtidLogEvent);
-          return event;
-        }
       case LogEvent.PARTIAL_UPDATE_ROWS_EVENT:
         {
           RowsLogEvent event = new UpdateRowsLogEvent(header, buffer, descriptionEvent, true);
@@ -425,44 +399,6 @@ public final class LogDecoder {
       case LogEvent.XA_PREPARE_LOG_EVENT:
         {
           XaPrepareLogEvent event = new XaPrepareLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          return event;
-        }
-      case LogEvent.ANNOTATE_ROWS_EVENT:
-        {
-          AnnotateRowsEvent event = new AnnotateRowsEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          header.putGtid(context.getGtidSet(), gtidLogEvent);
-          return event;
-        }
-      case LogEvent.BINLOG_CHECKPOINT_EVENT:
-        {
-          BinlogCheckPointLogEvent event =
-              new BinlogCheckPointLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          return event;
-        }
-      case LogEvent.GTID_EVENT:
-        {
-          MariaGtidLogEvent event = new MariaGtidLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          return event;
-        }
-      case LogEvent.GTID_LIST_EVENT:
-        {
-          MariaGtidListLogEvent event = new MariaGtidListLogEvent(header, buffer, descriptionEvent);
-          /* updating position in context */
-          logPosition.position = header.getLogPos();
-          return event;
-        }
-      case LogEvent.START_ENCRYPTION_EVENT:
-        {
-          StartEncryptionLogEvent event =
-              new StartEncryptionLogEvent(header, buffer, descriptionEvent);
           /* updating position in context */
           logPosition.position = header.getLogPos();
           return event;

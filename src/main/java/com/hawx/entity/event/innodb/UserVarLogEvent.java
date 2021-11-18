@@ -1,8 +1,8 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.CharsetConversion;
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
+import com.hawx.utils.CharsetConversion;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -46,11 +46,7 @@ public final class UserVarLogEvent extends LogEvent {
   private final int charsetNumber;
   private final boolean isNull;
 
-  /**
-   * The following is for user defined functions
-   *
-   * @see mysql-5.1.60//include/mysql_com.h
-   */
+  /** The following is for user defined functions */
   public static final int STRING_RESULT = 0;
 
   public static final int REAL_RESULT = 1;

@@ -1,8 +1,8 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.CharsetConversion;
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
+import com.hawx.utils.CharsetConversion;
 
 import java.io.IOException;
 import java.math.BigInteger;
@@ -255,7 +255,6 @@ import java.nio.charset.Charset;
  * Q_CHARSET_DATABASE_CODE in the table above. When adding new status vars, please don't forget to
  * update the MAX_SIZE_LOG_EVENT_STATUS, and update function code_name
  *
- * @see mysql-5.1.6/sql/logevent.cc - Query_log_event
  * @author <a href="mailto:changyuan.lh@taobao.com">Changyuan.lh</a>
  * @version 1.0
  */

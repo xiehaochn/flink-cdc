@@ -1,7 +1,7 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
 
 import java.util.ArrayList;
 import java.util.BitSet;
@@ -538,11 +538,7 @@ public final class TableMapLogEvent extends LogEvent {
     // }
   }
 
-  /**
-   * Decode field metadata by column types.
-   *
-   * @see mysql-5.1.60/sql/rpl_utility.h
-   */
+  /** Decode field metadata by column types. */
   private final void decodeFields(LogBuffer buffer, final int len) {
     final int limit = buffer.limit();
 

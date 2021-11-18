@@ -1,6 +1,8 @@
 package com.hawx.entity;
 
-public class DataBase {
+import java.io.Serializable;
+
+public class DataBase implements Serializable {
   private String type;
   private String host;
   private int port;

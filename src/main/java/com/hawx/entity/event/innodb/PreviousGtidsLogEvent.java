@@ -1,7 +1,7 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
 
 /**
  * @author jianghang 2013-4-8 上午12:36:29

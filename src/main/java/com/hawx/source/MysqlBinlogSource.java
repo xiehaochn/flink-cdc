@@ -25,11 +25,10 @@ import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.net.UnknownHostException;
-import java.nio.charset.Charset;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
-public class MysqlBinlogSource extends RichParallelSourceFunction {
+public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
   private static final String MARIA_SLAVE_CAPABILITY_MINE = "4";
   private static final long MASTER_HEARTBEAT_PERIOD_SECONDS = 15;
   private static final long BINLOG_START_OFFSET = 4L;
@@ -39,7 +38,6 @@ public class MysqlBinlogSource extends RichParallelSourceFunction {
   private int defaultConnectionTimeoutInSeconds = 30; // sotimeout
   private int receiveBufferSize = 64 * 1024;
   private int sendBufferSize = 64 * 1024;
-  protected Charset connectionCharset = Charset.forName("UTF-8");
   protected final AtomicLong receivedBinlogBytes = new AtomicLong(0L);
   private String destination = "tmpDestination"; // 队列名字
   private DataBase dataBase =
@@ -259,6 +257,7 @@ public class MysqlBinlogSource extends RichParallelSourceFunction {
       if (event.getSemival() == 1) {
         sendSemiAck(context.getLogPosition().getFileName(), context.getLogPosition().getPosition());
       }
+      sourceContext.collect(event);
     }
   }
 

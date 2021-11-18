@@ -1,7 +1,7 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
 
 /**
  * Logs random seed used by the next RAND(), and by PASSWORD() in 4.1.0. 4.1.1 does not need it

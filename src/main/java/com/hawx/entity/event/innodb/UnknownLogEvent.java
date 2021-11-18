@@ -1,6 +1,6 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogEvent;
 
 /**
  * Unknown_log_event

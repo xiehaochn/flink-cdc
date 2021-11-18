@@ -1,10 +1,9 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogContext;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
-import com.taobao.tddl.dbsync.binlog.event.TableMapLogEvent.ColumnInfo;
-import com.taobao.tddl.dbsync.binlog.exception.TableIdNotFoundException;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogContext;
+import com.hawx.entity.event.LogEvent;
+import com.hawx.entity.event.innodb.TableMapLogEvent.ColumnInfo;
 
 import java.util.BitSet;
 
@@ -186,7 +185,7 @@ public abstract class RowsLogEvent extends LogEvent {
     table = context.getTable(tableId);
 
     if (table == null) {
-      throw new TableIdNotFoundException("not found tableId:" + tableId);
+      throw new RuntimeException("not found tableId:" + tableId);
     }
 
     // end of statement check:

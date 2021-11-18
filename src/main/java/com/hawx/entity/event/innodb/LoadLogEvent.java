@@ -1,7 +1,7 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
 
 /**
  * This log event corresponds to a "LOAD DATA INFILE" SQL query on the following form:
@@ -218,7 +218,6 @@ public class LoadLogEvent extends LogEvent {
         descriptionEvent);
   }
 
-  /** @see mysql-5.1.60/sql/log_event.cc - Load_log_event::copy_log_event */
   protected final void copyLogEvent(
       LogBuffer buffer, final int bodyOffset, FormatDescriptionLogEvent descriptionEvent) {
     /* this is the beginning of the post-header */

@@ -1,12 +1,11 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.JsonConversion;
-import com.taobao.tddl.dbsync.binlog.JsonConversion.Json_Value;
-import com.taobao.tddl.dbsync.binlog.JsonDiffConversion;
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
+import com.hawx.utils.JsonConversion;
+import com.hawx.utils.JsonDiffConversion;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
@@ -16,13 +15,12 @@ import java.util.BitSet;
 /**
  * Extracting JDBC type & value information from packed rows-buffer.
  *
- * @see mysql-5.1.60/sql/log_event.cc - Rows_log_event::print_verbose_one_row
  * @author <a href="mailto:changyuan.lh@taobao.com">Changyuan.lh</a>
  * @version 1.0
  */
 public final class RowsLogBuffer {
 
-  protected static final Log logger = LogFactory.getLog(RowsLogBuffer.class);
+  protected static final Logger logger = LoggerFactory.getLogger(RowsLogBuffer.class);
 
   public static final long DATETIMEF_INT_OFS = 0x8000000000L;
   public static final long TIMEF_INT_OFS = 0x800000L;
@@ -65,11 +63,7 @@ public final class RowsLogBuffer {
     return nextOneRow(columns, false);
   }
 
-  /**
-   * Extracting next row from packed buffer.
-   *
-   * @see mysql-5.1.60/sql/log_event.cc - Rows_log_event::print_verbose_one_row
-   */
+  /** Extracting next row from packed buffer. */
   public final boolean nextOneRow(BitSet columns, boolean after) {
     final boolean hasOneRow = buffer.hasRemaining();
 
@@ -97,21 +91,13 @@ public final class RowsLogBuffer {
     return hasOneRow;
   }
 
-  /**
-   * Extracting next field value from packed buffer.
-   *
-   * @see mysql-5.1.60/sql/log_event.cc - Rows_log_event::print_verbose_one_row
-   */
+  /** Extracting next field value from packed buffer. */
   public final Serializable nextValue(
       final String columName, final int columnIndex, final int type, final int meta) {
     return nextValue(columName, columnIndex, type, meta, false);
   }
 
-  /**
-   * Extracting next field value from packed buffer.
-   *
-   * @see mysql-5.1.60/sql/log_event.cc - Rows_log_event::print_verbose_one_row
-   */
+  /** Extracting next field value from packed buffer. */
   public final Serializable nextValue(
       final String columName,
       final int columnIndex,
@@ -271,11 +257,7 @@ public final class RowsLogBuffer {
     return javaType;
   }
 
-  /**
-   * Extracting next field value from packed buffer.
-   *
-   * @see mysql-5.1.60/sql/log_event.cc - log_event_print_value
-   */
+  /** Extracting next field value from packed buffer. */
   final Serializable fetchValue(
       String columnName, int columnIndex, int type, final int meta, boolean isBinary) {
     int len = 0;
@@ -1128,7 +1110,7 @@ public final class RowsLogBuffer {
               value = "";
             } else {
               int position = buffer.position();
-              Json_Value jsonValue =
+              JsonConversion.Json_Value jsonValue =
                   JsonConversion.parse_value(buffer.getUint8(), buffer, len - 1, charsetName);
               StringBuilder builder = new StringBuilder();
               jsonValue.toJsonString(builder, charsetName);

@@ -1,6 +1,6 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
+import com.hawx.entity.event.LogBuffer;
 
 /**
  * Log row deletions. The event contain several delete rows for a table. Note that each event

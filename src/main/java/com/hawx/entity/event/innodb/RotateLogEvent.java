@@ -1,7 +1,7 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
 
 /**
  * This will be deprecated when we move to using sequence ids. Binary Format The Post-Header has one
@@ -75,11 +75,7 @@ public final class RotateLogEvent extends LogEvent {
   // Rotate header with all empty fields.
   public static final LogHeader ROTATE_HEADER = new LogHeader(ROTATE_EVENT);
 
-  /**
-   * Creates a new <code>Rotate_log_event</code> object read normally from log.
-   *
-   * @throws MySQLExtractException
-   */
+  /** Creates a new <code>Rotate_log_event</code> object read normally from log. */
   public RotateLogEvent(
       LogHeader header, LogBuffer buffer, FormatDescriptionLogEvent descriptionEvent) {
     super(header);

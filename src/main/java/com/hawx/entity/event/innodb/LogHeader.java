@@ -1,8 +1,8 @@
 package com.hawx.entity.event.innodb;
 
-import com.alibaba.otter.canal.parse.driver.mysql.packets.GTIDSet;
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
-import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.hawx.connect.packet.GTIDSet;
+import com.hawx.entity.event.LogBuffer;
+import com.hawx.entity.event.LogEvent;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,7 +60,6 @@ import java.util.Map;
  *
  * Summing up the numbers above, we see that the total size of the common header is 19 bytes.
  *
- * @see mysql-5.1.60/sql/log_event.cc
  * @author <a href="mailto:changyuan.lh@taobao.com">Changyuan.lh</a>
  * @version 1.0
  */

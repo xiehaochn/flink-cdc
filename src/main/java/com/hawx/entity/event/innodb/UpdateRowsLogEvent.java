@@ -1,6 +1,6 @@
 package com.hawx.entity.event.innodb;
 
-import com.taobao.tddl.dbsync.binlog.LogBuffer;
+import com.hawx.entity.event.LogBuffer;
 
 /**
  * Log row updates with a before image. The event contain several update rows for a table. Note that
