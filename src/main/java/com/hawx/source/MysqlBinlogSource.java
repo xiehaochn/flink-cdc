@@ -1,19 +1,20 @@
 package com.hawx.source;
 
-import com.hawx.connect.MysqlConnector;
-import com.hawx.connect.packet.HeaderPacket;
-import com.hawx.connect.packet.MysqlUpdateExecutor;
-import com.hawx.connect.packet.PacketManager;
-import com.hawx.connect.packet.client.BinlogDumpCommandPacket;
-import com.hawx.connect.packet.client.RegisterSlaveCommandPacket;
-import com.hawx.connect.packet.client.SemiAckCommandPacket;
-import com.hawx.connect.packet.server.ErrorPacket;
+import com.alibaba.otter.canal.parse.driver.mysql.MysqlConnector;
+import com.alibaba.otter.canal.parse.driver.mysql.MysqlUpdateExecutor;
+import com.alibaba.otter.canal.parse.driver.mysql.packets.HeaderPacket;
+import com.alibaba.otter.canal.parse.driver.mysql.packets.client.BinlogDumpCommandPacket;
+import com.alibaba.otter.canal.parse.driver.mysql.packets.client.RegisterSlaveCommandPacket;
+import com.alibaba.otter.canal.parse.driver.mysql.packets.client.SemiAckCommandPacket;
+import com.alibaba.otter.canal.parse.driver.mysql.packets.server.ErrorPacket;
+import com.alibaba.otter.canal.parse.driver.mysql.utils.PacketManager;
+import com.alibaba.otter.canal.parse.inbound.mysql.dbsync.DirectLogFetcher;
+import com.hawx.entity.BinlogPosition;
 import com.hawx.entity.DataBase;
-import com.hawx.entity.event.LogContext;
-import com.hawx.entity.event.LogDecoder;
-import com.hawx.entity.event.LogEvent;
-import com.hawx.entity.event.innodb.FormatDescriptionLogEvent;
-import com.hawx.utils.DirectLogFetcher;
+import com.taobao.tddl.dbsync.binlog.LogContext;
+import com.taobao.tddl.dbsync.binlog.LogDecoder;
+import com.taobao.tddl.dbsync.binlog.LogEvent;
+import com.taobao.tddl.dbsync.binlog.event.FormatDescriptionLogEvent;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.streaming.api.functions.source.RichParallelSourceFunction;
@@ -39,7 +40,8 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
   private int receiveBufferSize = 64 * 1024;
   private int sendBufferSize = 64 * 1024;
   protected final AtomicLong receivedBinlogBytes = new AtomicLong(0L);
-  private String destination = "MysqlBinlogSource"; // 队列名字
+
+  private String destination = "MysqlBinlogSource"; // StreamName
   private DataBase dataBase =
       new DataBase(
           "mysql",
@@ -49,6 +51,8 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
           "hawx",
           "xxx147258",
           "hawx");
+  private BinlogPosition binlogPosition =
+      new BinlogPosition("mysql-bin.000001", BINLOG_START_OFFSET);
 
   private long slaveId;
   private MysqlConnector mysqlConnector;
@@ -58,22 +62,54 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
     super.open(parameters);
     logger.info("start init binlog connector:" + dataBase.getHost() + ":" + dataBase.getPort());
     initBinlogConnector(dataBase);
-    mysqlConnector.setReceiveBufferSize(receiveBufferSize);
-    mysqlConnector.setSendBufferSize(sendBufferSize);
-    mysqlConnector.setSoTimeout(defaultConnectionTimeoutInSeconds * 1000);
-    //    mysqlConnector.setCharset(connectionCharset);
-    //    mysqlConnector.setReceivedBinlogBytes(receivedBinlogBytes);
-    // 随机生成slaveId
-    if (this.slaveId <= 0) {
-      this.slaveId = generateUniqueServerId();
-    }
-    logger.info("end init binlog connector");
+    logger.info("end init binlog connector.");
     logger.info("start connect");
     mysqlConnector.connect();
     logger.info("end connect");
     updateSettings();
     sendRegisterSlave();
-    sendBinlogDump("mysql-bin.000001", BINLOG_START_OFFSET);
+    sendBinlogDump(binlogPosition);
+  }
+
+  @Override
+  public void close() throws Exception {
+    super.close();
+    mysqlConnector.disconnect();
+  }
+
+  @Override
+  public void run(SourceContext<LogEvent> sourceContext) throws Exception {
+    DirectLogFetcher fetcher = new DirectLogFetcher(mysqlConnector.getReceiveBufferSize());
+    fetcher.start(mysqlConnector.getChannel());
+    LogDecoder decoder = new LogDecoder(LogEvent.UNKNOWN_EVENT, LogEvent.ENUM_END_EVENT);
+    LogContext context = new LogContext();
+    context.setFormatDescription(new FormatDescriptionLogEvent(4, BINLOG_CHECKSUM_ALG_OFF));
+    mysqlConnector.setDumping(true);
+    while (fetcher.fetch()) {
+      accumulateReceivedBytes(fetcher.limit());
+      LogEvent event = null;
+      event = decoder.decode(fetcher, context);
+
+      if (event == null) {
+        throw new Exception("parse failed");
+      }
+      // 处理binlog Event
+      logger.info("fetch:" + event);
+      if (event.getSemival() == 1) {
+        sendSemiAck(context.getLogPosition().getFileName(), context.getLogPosition().getPosition());
+      }
+      sourceContext.collect(event);
+    }
+  }
+
+  @Override
+  public void cancel() {
+    try {
+      close();
+    } catch (Exception e) {
+      logger.error("cancel mysqlBinlogSource Failed");
+      e.printStackTrace();
+    }
   }
 
   private void accumulateReceivedBytes(long x) {
@@ -121,10 +157,10 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
     }
   }
 
-  private void sendBinlogDump(String binlogFileName, Long binlogPosition) throws IOException {
+  private void sendBinlogDump(BinlogPosition binlogPosition) throws IOException {
     BinlogDumpCommandPacket binlogDumpCmd = new BinlogDumpCommandPacket();
-    binlogDumpCmd.binlogFileName = binlogFileName;
-    binlogDumpCmd.binlogPosition = binlogPosition;
+    binlogDumpCmd.binlogFileName = binlogPosition.getFileName();
+    binlogDumpCmd.binlogPosition = binlogPosition.getPosition();
     binlogDumpCmd.slaveServerId = this.slaveId;
     byte[] cmdBody = binlogDumpCmd.toBytes();
 
@@ -231,43 +267,18 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
     exector.update(cmd);
   }
 
-  private void initBinlogConnector(DataBase dataBase) {
+  private void initBinlogConnector(DataBase dataBase) throws UnknownHostException {
     mysqlConnector =
         new MysqlConnector(
-            new InetSocketAddress(dataBase.getHost(), dataBase.getPort()),
-            dataBase.getUser(),
-            dataBase.getPassword(),
-            dataBase.getDefaultDb());
-  }
-
-  @Override
-  public void close() throws Exception {
-    super.close();
-    mysqlConnector.disconnect();
-  }
-
-  @Override
-  public void run(SourceContext<LogEvent> sourceContext) throws Exception {
-    DirectLogFetcher fetcher = new DirectLogFetcher(mysqlConnector.getReceiveBufferSize());
-    fetcher.start(mysqlConnector.getChannel());
-    LogDecoder decoder = new LogDecoder(LogEvent.UNKNOWN_EVENT, LogEvent.ENUM_END_EVENT);
-    LogContext context = new LogContext();
-    context.setFormatDescription(new FormatDescriptionLogEvent(4, BINLOG_CHECKSUM_ALG_OFF));
-    mysqlConnector.setDumping(true);
-    while (fetcher.fetch()) {
-      accumulateReceivedBytes(fetcher.limit());
-      LogEvent event = null;
-      event = decoder.decode(fetcher, context);
-
-      if (event == null) {
-        throw new Exception("parse failed");
-      }
-      // 处理binlog Event
-      logger.info("fetch:" + event);
-      if (event.getSemival() == 1) {
-        sendSemiAck(context.getLogPosition().getFileName(), context.getLogPosition().getPosition());
-      }
-      sourceContext.collect(event);
+            dataBase.getInetSocketAddress(), dataBase.getUser(), dataBase.getPassword());
+    mysqlConnector.setReceiveBufferSize(receiveBufferSize);
+    mysqlConnector.setSendBufferSize(sendBufferSize);
+    mysqlConnector.setSoTimeout(defaultConnectionTimeoutInSeconds * 1000);
+    //    mysqlConnector.setCharsetNumber(connectionCharset);
+    //    mysqlConnector.setReceivedBinlogBytes(receivedBinlogBytes);
+    // 随机生成slaveId
+    if (this.slaveId <= 0) {
+      this.slaveId = generateUniqueServerId();
     }
   }
 
@@ -283,15 +294,5 @@ public class MysqlBinlogSource extends RichParallelSourceFunction<LogEvent> {
     semiAckHeader.setPacketBodyLength(cmdBody.length);
     semiAckHeader.setPacketSequenceNumber((byte) 0x00);
     PacketManager.writePkg(mysqlConnector.getChannel(), semiAckHeader.toBytes(), cmdBody);
-  }
-
-  @Override
-  public void cancel() {
-    try {
-      close();
-    } catch (Exception e) {
-      logger.error("cancel mysqlBinlogSource Failed");
-      e.printStackTrace();
-    }
   }
 }

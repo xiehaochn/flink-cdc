@@ -1,7 +1,7 @@
 package com.hawx.task;
 
-import com.hawx.entity.event.LogEvent;
 import com.hawx.source.MysqlBinlogSource;
+import com.taobao.tddl.dbsync.binlog.LogEvent;
 import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStream;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;

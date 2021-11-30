@@ -1,8 +1,11 @@
 package com.hawx.entity;
 
 import java.io.Serializable;
+import java.net.InetSocketAddress;
 
 public class DataBase implements Serializable {
+
+  private static final long serialVersionUID = 5072478257774007161L;
   private String type;
   private String host;
   private int port;
@@ -82,5 +85,9 @@ public class DataBase implements Serializable {
 
   public void setDefaultDb(String defaultDb) {
     this.defaultDb = defaultDb;
+  }
+
+  public InetSocketAddress getInetSocketAddress() {
+    return new InetSocketAddress(host, port);
   }
 }
